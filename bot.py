@@ -30,26 +30,36 @@ except ImportError:
     pass
 
 # ---------------------------------------------------------------------------
-# CLIENT
+# CLIENT & PROVIDER CONFIGURATION (Grok or Gemini)
 # ---------------------------------------------------------------------------
 _client: Optional[OpenAI] = None
+_active_model: str = "gemini-3.5-flash-lite"
 
 
-def _get_client() -> OpenAI:
-    global _client
+def _get_client_and_model() -> tuple[OpenAI, str]:
+    global _client, _active_model
     if _client is None:
-        api_key = os.environ.get("GEMINI_API_KEY", "")
-        if not api_key:
-            raise EnvironmentError(
-                "GEMINI_API_KEY environment variable not set. "
-                "Get a free key at https://aistudio.google.com/apikey\n"
-                "Then run: $env:GEMINI_API_KEY='AIza...' (PowerShell)"
+        grok_key = os.environ.get("GROK_API_KEY") or os.environ.get("XAI_API_KEY")
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+
+        if grok_key:
+            _client = OpenAI(
+                api_key=grok_key,
+                base_url="https://api.x.ai/v1",
             )
-        _client = OpenAI(
-            api_key=api_key,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        )
-    return _client
+            _active_model = os.environ.get("GROK_MODEL", "grok-3-mini")
+        elif gemini_key:
+            _client = OpenAI(
+                api_key=gemini_key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            )
+            _active_model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        else:
+            raise EnvironmentError(
+                "Neither GROK_API_KEY nor GEMINI_API_KEY is set.\n"
+                "Please open .env and enter your key."
+            )
+    return _client, _active_model
 
 
 # ---------------------------------------------------------------------------
@@ -399,8 +409,7 @@ def compose(
         + "Output valid JSON only."
     )
 
-    client = _get_client()
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    client, model_name = _get_client_and_model()
     response = client.chat.completions.create(
         model=model_name,
         messages=[

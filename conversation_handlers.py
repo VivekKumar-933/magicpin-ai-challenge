@@ -172,9 +172,9 @@ MULTI_TURN_SYSTEM = (
 
 
 def _llm_respond(user_prompt: str, state: ConversationState) -> dict:
-    """Internal: call Grok for multi-turn response."""
-    client = _get_client()
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    """Internal: call LLM (Grok or Gemini) for multi-turn response."""
+    from bot import _get_client_and_model
+    client, model_name = _get_client_and_model()
     response = client.chat.completions.create(
         model=model_name,
         messages=[
