@@ -127,10 +127,15 @@ def healthz():
 
 @app.get("/v1/metadata")
 def metadata():
+    try:
+        from bot import _get_client_and_model
+        _, model_name = _get_client_and_model()
+    except Exception:
+        model_name = os.environ.get("GROQ_MODEL", os.environ.get("GEMINI_MODEL", "openai/gpt-oss-120b"))
     return {
         "team_name": "Vera Bot",
         "team_members": ["Vivek Kumar"],
-        "model": os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+        "model": model_name,
         "approach": (
             "Trigger-routed prompt composer with 25 strategy variants. "
             "Context summarization + compulsion-lever instructions. "

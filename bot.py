@@ -30,19 +30,28 @@ except ImportError:
     pass
 
 # ---------------------------------------------------------------------------
-# CLIENT & PROVIDER CONFIGURATION (Grok or Gemini)
+# CLIENT & PROVIDER CONFIGURATION (Groq, xAI Grok, or Gemini)
 # ---------------------------------------------------------------------------
 _client: Optional[OpenAI] = None
-_active_model: str = "gemini-3.5-flash-lite"
+_active_model: str = "openai/gpt-oss-120b"
 
 
 def _get_client_and_model() -> tuple[OpenAI, str]:
     global _client, _active_model
     if _client is None:
+        groq_key = os.environ.get("GROQ_API_KEY")
         grok_key = os.environ.get("GROK_API_KEY") or os.environ.get("XAI_API_KEY")
         gemini_key = os.environ.get("GEMINI_API_KEY")
 
-        if grok_key:
+        # Auto-detect Groq keys (start with gsk_ or explicitly set GROQ_API_KEY)
+        if groq_key or (grok_key and grok_key.startswith("gsk_")):
+            key = groq_key or grok_key
+            _client = OpenAI(
+                api_key=key,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            _active_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+        elif grok_key and grok_key.startswith("xai-"):
             _client = OpenAI(
                 api_key=grok_key,
                 base_url="https://api.x.ai/v1",
@@ -56,8 +65,8 @@ def _get_client_and_model() -> tuple[OpenAI, str]:
             _active_model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
         else:
             raise EnvironmentError(
-                "Neither GROK_API_KEY nor GEMINI_API_KEY is set.\n"
-                "Please open .env and enter your key."
+                "No valid API key found.\n"
+                "Please set GROQ_API_KEY, GROK_API_KEY, or GEMINI_API_KEY in .env."
             )
     return _client, _active_model
 
