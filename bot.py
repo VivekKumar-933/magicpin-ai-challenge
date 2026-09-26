@@ -23,6 +23,12 @@ import pathlib
 from typing import Optional
 from openai import OpenAI
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ---------------------------------------------------------------------------
 # CLIENT
 # ---------------------------------------------------------------------------
